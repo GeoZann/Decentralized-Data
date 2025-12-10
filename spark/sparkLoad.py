@@ -28,7 +28,7 @@ def load_df(collection):
     return spark, df
 
 
-def save_df(df, collection, update_keys="_id", mode="append"):
+def save_df(spark, df, collection, update_keys="_id", mode="append"):
     MONGO_URI = "mongodb+srv://Giorgos:root@cluster0.c940dbb.mongodb.net"
     DB_NAME = "CourseDB"
     COLLECTION_NAME = collection
@@ -50,3 +50,18 @@ def save_df(df, collection, update_keys="_id", mode="append"):
     except Exception as e:
 
         print(f"❌ Σφάλμα κατά την αποθήκευση/ενημέρωση στο MongoDB: {e}")
+
+    spark.stop()
+
+
+if __name__ == "__main__":
+    # 4. Εμφάνιση Αποτελεσμάτων
+    spark, df = load_df("courses")
+    print("\n--- Schema του DataFrame ---")
+    df.printSchema()
+
+    print("\n--- Πρώτες 5 Γραμμές Δεδομένων ---")
+    df.show(5)
+
+    spark.stop()
+    print("\n✅ Η εργασία ολοκληρώθηκε και η Spark Session τερματίστηκε.")
