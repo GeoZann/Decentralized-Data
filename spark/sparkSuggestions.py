@@ -52,7 +52,7 @@ def generate_suggestions(user_likes: list, num_suggestions=5):
     print(f"✅ Δημιουργήθηκαν {final_suggestions.count()} μοναδικές προτάσεις.")
     # final_suggestions.show(truncate=False)
 
-    return final_suggestions
+    return spark, final_suggestions
 
 
 if __name__ == "__main__":
@@ -67,8 +67,10 @@ if __name__ == "__main__":
         "69383d5e47b7f4d400d997fb"
     ]
 
-    suggestions_df = generate_suggestions(USER_LIKED_COURSE_IDS, num_suggestions=5)
+    spark, suggestions_df = generate_suggestions(USER_LIKED_COURSE_IDS, num_suggestions=5)
 
     if suggestions_df is not None:
         print("\nΤελικές Προτάσεις:")
         suggestions_df.show(truncate=False)
+
+    spark.stop()
