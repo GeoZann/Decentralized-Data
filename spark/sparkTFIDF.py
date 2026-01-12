@@ -25,15 +25,14 @@ def df_find_similar(df, input_col="description"):
     idf_model = idf.fit(tf_df)
     tfidf_df = idf_model.transform(tf_df)
 
-    # --- ΤΟ ΒΗΜΑ 5 (Normalizer) ΕΧΕΙ ΑΦΑΙΡΕΘΕΙ ---
 
-    # 6. Use the 'features' vectors directly
+    # 5. Use the 'features' vectors directly
     doc_vectors = tfidf_df.select(
         col("_id"),
         col("features")  # Χρησιμοποιούμε τα features (από IDF)
     )
 
-    # 7. LSH
+    # 6. LSH
     lsh = BucketedRandomProjectionLSH(
         inputCol="features",
         outputCol="hashes",
@@ -42,15 +41,15 @@ def df_find_similar(df, input_col="description"):
     )
     lsh_model = lsh.fit(doc_vectors)
 
-    # 8. Similarity Join
+    # 7. Similarity Join
     similar_df = lsh_model.approxSimilarityJoin(
         doc_vectors,
         doc_vectors,
-        threshold=15.0,
+        threshold=20.0,
         distCol="distance"
     ).filter(col("datasetA._id") != col("datasetB._id"))
 
-    # 9. Ranking top 5
+    # 8. Ranking top 5
     windowSpec = Window.partitionBy("datasetA._id").orderBy(col("distance"))
 
     top5_df = similar_df.withColumn(
@@ -58,7 +57,7 @@ def df_find_similar(df, input_col="description"):
         row_number().over(windowSpec)
     ).filter(col("rank") <= 5)
 
-    # 10. Group results
+    # 9. Group results
     df_results  = top5_df.groupBy(
         col("datasetA._id").alias("_id")
     ).agg(
