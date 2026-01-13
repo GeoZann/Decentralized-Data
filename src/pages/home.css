@@ -1,0 +1,197 @@
+/* --- Container --- */
+.home-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+/* --- Header --- */
+.home-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 20px;
+}
+
+.home-header h1 {
+  color: #fff;
+  margin: 0 0 10px 0;
+}
+
+.home-header p {
+  color: #aaa;
+  margin: 0;
+}
+
+/* --- Filter Bar --- */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  background-color: #2a2a2a;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-radius: 12px; /* Default rounded */
+  transition: border-radius 0.3s ease;
+}
+
+.filter-bar.sticky {
+  border-radius: 0px; /* Sharp corners when sticking */
+}
+
+/* Inputs & Selects */
+.filter-input, .filter-select {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #333;
+  color: white;
+}
+
+.filter-input {
+  flex: 2;
+}
+
+.filter-select {
+  flex: 1;
+  min-width: 130px;
+  cursor: pointer;
+}
+
+/* --- Universal Action Button (Replaces InteractiveButton) --- */
+/* This matches the Deep Cherry button style exactly */
+.action-button {
+  cursor: pointer;
+  background-color: #880e4f; /* Deep Cherry */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  padding: 12px; /* Default padding */
+}
+
+.action-button:hover {
+  background-color: #ad1457; /* Lighter Cherry */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* --- Course Grid (FIXED) --- */
+.course-grid {
+  display: grid;
+  /* Creates flexible columns that are at least 300px wide */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  
+  /* Shorthand: 4rem Vertical, 25px Horizontal */
+  gap: 4rem 25px; 
+  
+  /* Ensure the grid takes up height properly */
+  align-items: stretch;
+  margin-bottom: 50px;
+}
+
+.course-card {
+  border: none;
+  border-radius: 12px;
+  padding: 20px;
+  background-color: #cfd8dc; /* Cool Silver */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  
+  /* SAFETY: Adds a transparent border to force visual separation if gap fails */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+  transition: transform 0.2s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-5px); /* Optional: lifts card slightly on hover */
+}
+
+/* --- Badges --- */
+.card-badges {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  font-size: 0.75rem;
+}
+
+.card-badge {
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Dynamic Badge Colors */
+.badge-edx { background-color: #c62828 !important; }
+.badge-coursera { background-color: #1565c0 !important; }
+.badge-unknown { background-color: #333; }
+
+/* --- View Details Button (Specific width) --- */
+.view-details-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.95rem;
+}
+
+/* --- Empty State --- */
+.no-results {
+  text-align: center;
+  padding: 50px;
+  color: #aaa;
+  background-color: #2a2a2a;
+  border-radius: 12px;
+}
+
+/* --- Pagination --- */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+.page-input {
+  width: 50px;
+  padding: 5px;
+  text-align: center;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: white;
+}
+
+/* --- Pagination Buttons --- */
+.pagination-btn {
+  background-color: #333; /* Default: Dark Grey */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin: 0 2px;
+  font-size: 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* HOVER: Turn Deep Cherry */
+.pagination-btn:hover:not(:disabled) {
+  background-color: #880e4f; 
+}
+
+/* DISABLED: Fade out */
+.pagination-btn:disabled {
+  background-color: #1a1a1a;
+  color: #444;
+  cursor: not-allowed;
+}
