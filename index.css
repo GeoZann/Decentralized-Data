@@ -1,0 +1,99 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Dark Theme Colors */
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Make links blue but readable on dark */
+a {
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+/* Global Heading Defaults */
+h1, h2, h3 {
+  color: #ffffff;
+}
+
+/* --- Global Utility: Hide Input Number Arrows --- */
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* --- Global Utility: Custom Scrollbar --- */
+/* 1. The Scrollbar Container */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+/* 2. The Track (Background) */
+::-webkit-scrollbar-track {
+  background: #1a1a1a; 
+}
+
+/* 3. The Thumb (Draggable part) */
+::-webkit-scrollbar-thumb {
+  background-color: #880e4f; /* Deep Cherry */
+  border-radius: 8px;        
+  border: 4px solid #1a1a1a; /* Creates padding/floating effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #ad1457; /* Lighter Cherry on hover */
+}
+
+/* --- 4. The Buttons (Arrows) --- */
+::-webkit-scrollbar-button {
+  display: block;
+  height: 20px;
+  background-color: #1a1a1a;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px;
+}
+
+/* TOP BUTTON (Up Arrow) */
+::-webkit-scrollbar-button:vertical:start:decrement {
+  display: block;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23880e4f'><polygon points='50,15 100,85 0,85'/></svg>");
+}
+
+/* BOTTOM BUTTON (Down Arrow) */
+::-webkit-scrollbar-button:vertical:end:increment {
+  display: block;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='%23880e4f'><polygon points='0,15 100,15 50,85'/></svg>");
+}
+
+/* Clean up double arrows */
+::-webkit-scrollbar-button:vertical:start:increment,
+::-webkit-scrollbar-button:vertical:end:decrement {
+  display: none;
+}
