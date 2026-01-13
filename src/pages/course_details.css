@@ -1,0 +1,146 @@
+.course-container {
+  padding: 40px 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+}
+
+/* --- Back Link --- */
+.back-link {
+  text-decoration: none;
+  color: #aaa; /* Default Grey */
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: bold;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: #880e4f; /* Deep Cherry */
+}
+
+/* --- Main Card --- */
+.main-card {
+  background-color: #cfd8dc; /* Cool Silver */
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  color: #333;
+}
+
+.card-header {
+  border-bottom: 1px solid #bbb;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+
+.course-title {
+  margin: 0 0 15px 0;
+  color: #222;
+  font-size: 2rem;
+}
+
+/* --- Badges --- */
+.badges-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #555;
+}
+
+.badge {
+  background-color: #333;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* --- Action Button (CTA) --- */
+.cta-container {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: 12px 25px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  background-color: #880e4f; /* Deep Cherry */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.cta-button:hover {
+  background-color: #ad1457; /* Lighter Cherry */
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+}
+
+/* --- Recommendations Section --- */
+.recommendations-section {
+  margin-top: 50px;
+}
+
+.recommendations-title {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.similar-row {
+  background-color: #cfd8dc;
+  padding: 10px 20px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.similar-title {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* --- View Button --- */
+.view-button {
+  padding: 6px 15px;
+  background-color: #880e4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.view-button:hover {
+  background-color: #ad1457;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.empty-state {
+  padding: 20px;
+  border: 1px dashed #444;
+  border-radius: 8px;
+  color: #888;
+  text-align: center;
+  font-style: italic;
+}
