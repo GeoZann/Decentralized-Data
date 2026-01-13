@@ -7,101 +7,120 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
-// Database Connection
+
+// --- DATABASE CONNECTION ---
 const mongoURI = "mongodb+srv://Giorgos:root@cluster0.c940dbb.mongodb.net/CourseDB";
 
 mongoose.connect(mongoURI)
-  .then(() => console.log("Connected to MongoDB..."))
-  .catch(err => console.error("Connection Error:", err));
+  .then(() => console.log("✅ Connected to MongoDB..."))
+  .catch(err => console.error("❌ Connection Error:", err));
 
-// Schema Definition
+// --- SCHEMAS ---
 const courseSchema = new mongoose.Schema({
   title: String,
-  cluster: mongoose.Schema.Types.Mixed // Mixed allows both Numbers and Strings
+  description: String,
+  category: String,
+  level: String,
+  language: String,
+  original_url: String,
+  source_repository: String,
+  cluster: mongoose.Schema.Types.Mixed
 });
-
 const Course = mongoose.model('Course', courseSchema, 'courses');
 
 const similaritySchema = new mongoose.Schema({}, { strict: false });
 const CourseSimilarity = mongoose.model('CourseSimilarity', similaritySchema, 'course_similarity');
 
-// The /courses Endpoint
+// --- API ENDPOINTS ---
+
+// 1. GET ALL COURSES
 app.get('/courses', async (req, res) => {
   try {
-    // 1. Get page and limit from the URL query, or set defaults
-    // Example: /courses?page=2&limit=5
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    let query = Course.find({}); 
 
-    // 2. Calculate how many documents to skip
-    const skip = (page - 1) * limit;
+    // Only apply limit if specifically requested
+    if (req.query.limit) {
+      const limitVal = parseInt(req.query.limit);
+      query = query.limit(limitVal);
+    }
 
-    // 3. Query the database
-    const courses = await Course.find({})
-      .select('title cluster') // Only return these specific fields (+ _id)
-      .skip(skip)
-      .limit(limit);
-
-    // 4. (Optional) Get total count for the frontend to know how many pages exist
-    const totalCourses = await Course.countDocuments();
-
-    res.json({
-      total: totalCourses,
-      page: page,
-      limit: limit,
-      totalPages: Math.ceil(totalCourses / limit),
+    const courses = await query;
+    
+    res.status(200).json({
+      success: true,
+      count: courses.length,
       data: courses
     });
-  } catch (err) {
-    res.status(500).json({ message: "Server Error", error: err.message });
+
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get a single course by ID
+// 2. GET SINGLE COURSE
 app.get('/courses/:id', async (req, res) => {
   try {
-    // 1. Grab the ID from the URL parameters
-    const courseId = req.params.id;
-
-    // 2. Search the database
-    // findById automatically looks for the _id field
-    const course = await Course.findById(courseId);
-
-    // 3. Handle if the course doesn't exist
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-
-    // 4. Return all values for that document
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: "Not found" });
     res.json(course);
   } catch (err) {
-    // Handle invalid ID formats (e.g., if the ID string isn't a valid MongoDB ObjectId)
-    if (err.kind === 'ObjectId') {
-      return res.status(400).json({ message: "Invalid ID format" });
-    }
-    res.status(500).json({ message: "Server Error", error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
+// 3. GET SMART RECOMMENDATIONS
 app.get('/courses/:id/similar', async (req, res) => {
   try {
     const courseId = req.params.id;
+    const similarityDoc = await CourseSimilarity.findById(courseId);
 
-    // Search the similarity collection
-    // We search where the document's _id matches the one provided
-    const similarities = await CourseSimilarity.findById(courseId);
-
-    if (!similarities) {
-      return res.status(404).json({ message: "No similarity data found for this ID" });
+    if (!similarityDoc) {
+      return res.status(404).json({ message: "No similarity data found" });
     }
 
-    res.json(similarities);
+    const rawList = similarityDoc.toObject().top_5_similar_docs || [];
+    
+    if (rawList.length === 0) {
+      return res.json({ similar_courses: [] });
+    }
+
+    // Clean up IDs
+    const targetIds = rawList.map(item => {
+      if (item.similar_doc_id && item.similar_doc_id.oid) {
+        return item.similar_doc_id.oid;
+      }
+      return item.similar_doc_id;
+    });
+
+    // Fetch details
+    const similarCoursesDetails = await Course.find({
+      '_id': { $in: targetIds }
+    }).select('title source_repository level');
+
+    // Combine score with details
+    const finalResults = similarCoursesDetails.map(course => {
+      const originalMatch = rawList.find(r => {
+        const rId = r.similar_doc_id.oid || r.similar_doc_id;
+        return String(rId) === String(course._id);
+      });
+      
+      return {
+        id: course._id,
+        title: course.title,
+        level: course.level,
+        score: originalMatch ? originalMatch.distance : 0 
+      };
+    });
+
+    res.json({ similar_courses: finalResults });
+
   } catch (err) {
+    console.error("Server Error:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
-
 });
