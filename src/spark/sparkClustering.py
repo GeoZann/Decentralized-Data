@@ -5,26 +5,19 @@ from pyspark.ml import Pipeline
 from sparkLoad import load_df, save_df
 
 
-def cluster_df(df):
+def df_cluster(df):
     # 1. Ενοποίηση των πεδίων 'skills' και 'category'
     df_unified = df.withColumn(
         "clustering_text_raw",
         coalesce(col("skills"), col("category"), lit(""))
     )
 
-    print("✅ Δημιουργήθηκε ενοποιημένο πεδίο κειμένου clustering_text_raw.")
-    df_unified.select("title", "skills", "category", "clustering_text_raw").show(truncate=50)
-
     df_cleaned = df_unified.withColumn(
         "clustering_text_cleaned",
         regexp_replace(col("clustering_text_raw"), "[^a-zA-Z0-9\\s]", "")
     )
 
-    print("✅ Αφαιρέθηκαν τα σύμβολα '&' από το κείμενο.")
-    df_cleaned.select("clustering_text_raw", "clustering_text_cleaned").show(truncate=50)
-
     # 2. Δημιουργία Pipeline Προεπεξεργασίας Κειμένου και Μετατροπής σε Διανύσματα (TF-IDF)
-
     # Βήμα 1: Tokenizer (Σπάσιμο του κειμένου σε λέξεις)
     tokenizer = Tokenizer(inputCol="clustering_text_cleaned", outputCol="words")  # Άλλαξε το inputCol
 
@@ -44,11 +37,7 @@ def cluster_df(df):
     pipeline_model = fe_pipeline.fit(df_cleaned)  # Χρησιμοποιούμε το df_cleaned
     df_features = pipeline_model.transform(df_cleaned)
 
-    print("✅ Το κείμενο μετατράπηκε σε αριθμητικά διανύσματα (features).")
-    df_features.select("title", "features").show(truncate=50)
-
     # 3. Εφαρμογή Αλγορίθμου K-Means Clustering
-
     K = 20  # Ορίστε τον επιθυμητό αριθμό συστάδων (clusters)
     bkm = BisectingKMeans(featuresCol="features", k=K, seed=1)
 
@@ -71,7 +60,7 @@ def cluster_df(df):
 if __name__ == "__main__":
     spark, df = load_df("courses")
 
-    df_results = cluster_df(df)
+    df_results = df_cluster(df)
 
     print("✅ Η ομαδοποίηση ολοκληρώθηκε.")
     df_results.show(truncate=50)
