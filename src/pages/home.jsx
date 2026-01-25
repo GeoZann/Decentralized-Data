@@ -7,7 +7,7 @@ import './Home.css';
 // --- 1. THE MEMORY CACHE ---
 const homeCache = {
   data: null,        
-  total: 0,          // NEW: Store the total count
+  total: 0,
   scrollY: 0,        
   search: '',
   level: 'All',

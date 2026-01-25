@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import requests  
 import time
+import sys
 from kaggle.api.kaggle_api_extended import KaggleApi
 from pymongo import MongoClient
 
@@ -20,7 +21,6 @@ collection = db[COLLECTION_NAME]
 # ΛΕΙΤΟΥΡΓΙΑ 1: HARVEST EDX (Από Kaggle CSV)
 # ==========================================
 def harvest_edx():
-    print("\n🟦 [EDX] Ξεκινάει η διαδικασία harvesting...")
     DATASET = "imuhammad/edx-courses"
     DOWNLOAD_PATH = "./data"
     
@@ -36,7 +36,6 @@ def harvest_edx():
                 break
         
         if not csv_file:
-            print("❌ [EDX] Δεν βρέθηκε CSV αρχείο.")
             return
 
         df = pd.read_csv(csv_file)
@@ -59,16 +58,14 @@ def harvest_edx():
             if save_to_mongo(course_data):
                 count += 1
                 
-        print(f"✅ [EDX] Ολοκληρώθηκε! Προστέθηκαν/Ενημερώθηκαν {count} μαθήματα.")
         
     except Exception as e:
-        print(f"❌ [EDX] Σφάλμα: {e}")
+        print("FAILED TO HARVEST EDX:", str(e))
 
 # ==========================================
 # ΛΕΙΤΟΥΡΓΙΑ 2: HARVEST COURSERA (Από Hugging Face API)
 # ==========================================
 def harvest_coursera():
-    print("\n🟨 [COURSERA] Ξεκινάει η διαδικασία harvesting από API...")
     
     # Το βασικό URL χωρίς τις παραμέτρους
     base_url = "https://datasets-server.huggingface.co/rows"
@@ -85,11 +82,9 @@ def harvest_coursera():
     
     while has_more_data:
         try:
-            print(f"   ⏳ Λήψη μαθημάτων {params['offset']} - {params['offset'] + 100}...")
             response = requests.get(base_url, params=params)
             
             if response.status_code != 200:
-                print(f"❌ [COURSERA] API Error: {response.status_code}")
                 break
                 
             data = response.json()
@@ -125,10 +120,8 @@ def harvest_coursera():
             time.sleep(3) # Μικρή καθυστέρηση για να μην "θυμώσει" το API
             
         except Exception as e:
-            print(f"❌ [COURSERA] Σφάλμα στο loop: {e}")
             break
             
-    print(f"✅ [COURSERA] Ολοκληρώθηκε! Προστέθηκαν/Ενημερώθηκαν {total_count} μαθήματα.")
 
 # ==========================================
 # ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ ΑΠΟΘΗΚΕΥΣΗΣ
@@ -148,8 +141,17 @@ def save_to_mongo(data):
 # MAIN EXECUTION
 # ==========================================
 if __name__ == "__main__":
-    # Τρέχουμε και τα δύο!
-    harvest_edx()
-    harvest_coursera()
-    
-    print("\n✨ ΟΛΑ ΤΕΛΕΙΩΣΑΝ! Η βάση δεδομένων είναι πλήρως ενημερωμένη.")
+    # Check if an argument is provided
+    if len(sys.argv) > 1:
+        source = sys.argv[1].lower()
+        
+        if source == "edx":
+            harvest_edx()
+        elif source == "coursera":
+            harvest_coursera()
+        else:
+            print(f"Unknown source: {source}")
+
+        print("Harvesting completed.")
+    else:
+        print("No source provided. Usage: python script.py [edx|coursera]")
