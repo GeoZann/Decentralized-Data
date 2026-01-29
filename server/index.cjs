@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-// NEW: Import spawn to run Python scripts (from your friend's code)
+//Import spawn to run Python scripts
 const { spawn } = require('child_process');
 
 const app = express();
@@ -10,14 +10,14 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// --- DATABASE CONNECTION ---
+//Database Connection
 const mongoURI = "mongodb+srv://Giorgos:root@cluster0.c940dbb.mongodb.net/CourseDB";
 
 mongoose.connect(mongoURI)
-  .then(() => console.log("✅ Connected to MongoDB..."))
-  .catch(err => console.error("❌ Connection Error:", err));
+  .then(() => console.log("Connected to MongoDB..."))
+  .catch(err => console.error("Connection Error:", err));
 
-// --- SCHEMAS (KEPT YOUR FULL VERSION) ---
+//Schemas
 const courseSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -33,10 +33,8 @@ const Course = mongoose.model('Course', courseSchema, 'courses');
 const similaritySchema = new mongoose.Schema({}, { strict: false });
 const CourseSimilarity = mongoose.model('CourseSimilarity', similaritySchema, 'course_similarity');
 
-// --- API ENDPOINTS ---
-
-// 1. GET ALL COURSES (Kept your logic)
-
+//API Endpoints
+//Get all courses
 app.get('/courses', async (req, res) => {
   try {
     let query = Course.find({}); 
@@ -64,7 +62,7 @@ app.get('/courses', async (req, res) => {
   }
 });
 
-// 2. GET SINGLE COURSE
+//Single Course
 app.get('/courses/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -75,7 +73,7 @@ app.get('/courses/:id', async (req, res) => {
   }
 });
 
-// 3. GET SMART RECOMMENDATIONS (Kept your logic)
+//Smart Recommendations
 app.get('/courses/:id/similar', async (req, res) => {
   try {
     const courseId = req.params.id;
@@ -124,7 +122,7 @@ app.get('/courses/:id/similar', async (req, res) => {
   }
 });
 
-// 4. SYNC / HARVESTER (ADDED FROM FRIEND'S CODE)
+//Sync - Harvester
 app.get('/sync/:source', (req, res) => {
   const source = req.params.source.toLowerCase();
 
@@ -138,7 +136,6 @@ app.get('/sync/:source', (req, res) => {
   console.log(`🚀 Starting sync for: ${source}`);
 
   // Spawn the Python process
-  // Ensure 'harvester.py' is in the same folder as this server file!
   const pythonProcess = spawn('python3', ['harvester.py', source]);
 
   pythonProcess.stdout.on('data', (data) => {
