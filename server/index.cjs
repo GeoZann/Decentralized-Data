@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-//Import spawn to run Python scripts
 const { spawn } = require('child_process');
 
 const app = express();
@@ -10,14 +9,13 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-//Database Connection
+// --- DATABASE ---
 const mongoURI = "mongodb+srv://Giorgos:root@cluster0.c940dbb.mongodb.net/CourseDB";
-
 mongoose.connect(mongoURI)
-  .then(() => console.log("Connected to MongoDB..."))
-  .catch(err => console.error("Connection Error:", err));
+  .then(() => console.log("✅ Connected to MongoDB..."))
+  .catch(err => console.error("❌ Connection Error:", err));
 
-//Schemas
+// --- SCHEMAS ---
 const courseSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -25,137 +23,174 @@ const courseSchema = new mongoose.Schema({
   level: String,
   language: String,
   original_url: String,
-  source_repository: String,
-  cluster: mongoose.Schema.Types.Mixed
+  source_repository: String
 });
 const Course = mongoose.model('Course', courseSchema, 'courses');
 
 const similaritySchema = new mongoose.Schema({}, { strict: false });
 const CourseSimilarity = mongoose.model('CourseSimilarity', similaritySchema, 'course_similarity');
 
-//API Endpoints
-//Get all courses
+// --- THE FIX: LANGUAGE GROUPS ---
+// This acts as a dictionary to merge edX codes and Coursera names
+const languageGroups = {
+    'English': ['en', 'en-us', 'english', 'eng'],
+    'Spanish': ['es', 'es-es', 'spanish', 'español'],
+    'French': ['fr', 'fr-fr', 'french', 'français'],
+    'Chinese': ['zh', 'zh-cn', 'chinese', 'mandarin'],
+    'Italian': ['it', 'italian', 'italiano'],
+    'German': ['de', 'german', 'deutsch'],
+    'Russian': ['ru', 'russian'],
+    'Portuguese': ['pt', 'portuguese', 'português']
+};
+
+// Helper to normalize raw DB values (e.g. "en" -> "English")
+const getUnifiedLanguageName = (rawCode) => {
+    if (!rawCode) return "Other";
+    const lower = rawCode.toLowerCase().trim();
+    
+    // Check against our groups
+    for (const [groupName, variations] of Object.entries(languageGroups)) {
+        if (variations.includes(lower)) return groupName;
+    }
+    
+    // Fallback: Capitalize first letter (e.g. 'jap' -> 'Jap')
+    return rawCode.charAt(0).toUpperCase() + rawCode.slice(1);
+};
+
+// --- API ENDPOINTS ---
+
+// 1. GET FILTERS (Consolidated)
+app.get('/filters', async (req, res) => {
+    try {
+        // A. CATEGORIES (Same as before)
+        const categoryStats = await Course.aggregate([
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 30 }
+        ]);
+        const categories = categoryStats
+            .filter(item => item._id && item._id.trim() !== '')
+            .map(item => item._id)
+            .sort();
+
+        // B. LANGUAGES (The Fix)
+        // 1. Get ALL raw languages from DB (e.g. ['en', 'English', 'es', 'Spanish'])
+        const rawLanguages = await Course.distinct('language');
+        
+        // 2. Normalize them into a Set to remove duplicates
+        // 'en' becomes 'English', 'English' becomes 'English' -> Set keeps one 'English'
+        const uniqueNames = new Set();
+        rawLanguages.forEach(lang => {
+            if (lang) uniqueNames.add(getUnifiedLanguageName(lang));
+        });
+
+        res.json({
+            categories: categories,
+            languages: Array.from(uniqueNames).sort() // Returns ["English", "Spanish", ...]
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to load filters" });
+    }
+});
+
+// 2. GET COURSES (Smart Search)
 app.get('/courses', async (req, res) => {
   try {
-    let query = Course.find({}); 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 18;
+    const skip = (page - 1) * limit;
 
-    if (req.query.limit) {
-      const limitVal = parseInt(req.query.limit);
-      query = query.limit(limitVal);
+    let filter = {};
+
+    // CATEGORY
+    if (req.query.category && req.query.category !== 'All') {
+        const escapedCat = req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filter.category = { $regex: new RegExp(`^${escapedCat}$`, 'i') }; 
+    }
+
+    // LANGUAGE (The Fix)
+    if (req.query.language && req.query.language !== 'All') {
+        const selected = req.query.language; // User sends "English"
+        
+        // Check if we have a group for this (e.g. English -> ['en', 'English', ...])
+        const groupMatches = languageGroups[selected];
+
+        if (groupMatches) {
+            // Search for ANY of the variations
+            // This finds documents where language is "en" OR "English"
+            const regexList = groupMatches.map(val => new RegExp(`^${val}$`, 'i'));
+            filter.language = { $in: regexList };
+        } else {
+            // Fallback for unknown languages
+            filter.language = { $regex: new RegExp(`^${selected}$`, 'i') };
+        }
+    }
+
+    // LEVEL
+    if (req.query.level && req.query.level !== 'All') {
+         if (req.query.level === 'Beginner') filter.level = { $regex: /Beginner|Introductory/i };
+         else filter.level = { $regex: req.query.level, $options: 'i' };
+    }
+
+    // SOURCE & SEARCH
+    if (req.query.source_repository && req.query.source_repository !== 'All') {
+        filter.source_repository = { $regex: req.query.source_repository, $options: 'i' };
+    }
+    if (req.query.search) {
+        filter.title = { $regex: req.query.search, $options: 'i' };
     }
 
     const [courses, totalCount] = await Promise.all([
-      query,
-      Course.countDocuments({}) // Get the total number of docs in DB
+      Course.find(filter).skip(skip).limit(limit),
+      Course.countDocuments(filter)
     ]);
     
-    res.status(200).json({
-      success: true,
-      count: courses.length,
-      total: totalCount, 
-      data: courses
-    });
+    res.status(200).json({ success: true, count: courses.length, total: totalCount, data: courses });
 
   } catch (error) {
-    console.error("Error fetching courses:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-//Single Course
+// 3. SINGLE COURSE
 app.get('/courses/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Not found" });
     res.json(course);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-//Smart Recommendations
+// 4. RECOMMENDATIONS
 app.get('/courses/:id/similar', async (req, res) => {
   try {
-    const courseId = req.params.id;
-    const similarityDoc = await CourseSimilarity.findById(courseId);
+    const simDoc = await CourseSimilarity.findById(req.params.id);
+    if (!simDoc || !simDoc.top_5_similar_docs) return res.json({ similar_courses: [] });
 
-    if (!similarityDoc) {
-      return res.status(404).json({ message: "No similarity data found" });
-    }
+    const rawList = simDoc.toObject().top_5_similar_docs;
+    const targetIds = rawList.map(item => item.similar_doc_id.oid || item.similar_doc_id);
 
-    const rawList = similarityDoc.toObject().top_5_similar_docs || [];
-    
-    if (rawList.length === 0) {
-      return res.json({ similar_courses: [] });
-    }
+    const details = await Course.find({ '_id': { $in: targetIds } }).select('title source_repository level');
 
-    const targetIds = rawList.map(item => {
-      if (item.similar_doc_id && item.similar_doc_id.oid) {
-        return item.similar_doc_id.oid;
-      }
-      return item.similar_doc_id;
+    const results = details.map(c => {
+        const match = rawList.find(r => String(r.similar_doc_id.oid || r.similar_doc_id) === String(c._id));
+        return { id: c._id, title: c.title, level: c.level, score: match ? match.distance : 0 };
     });
-
-    const similarCoursesDetails = await Course.find({
-      '_id': { $in: targetIds }
-    }).select('title source_repository level');
-
-    const finalResults = similarCoursesDetails.map(course => {
-      const originalMatch = rawList.find(r => {
-        const rId = r.similar_doc_id.oid || r.similar_doc_id;
-        return String(rId) === String(course._id);
-      });
-      
-      return {
-        id: course._id,
-        title: course.title,
-        level: course.level,
-        score: originalMatch ? originalMatch.distance : 0 
-      };
-    });
-
-    res.json({ similar_courses: finalResults });
-
-  } catch (err) {
-    console.error("Server Error:", err);
-    res.status(500).json({ message: "Server Error", error: err.message });
-  }
+    res.json({ similar_courses: results });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-//Sync - Harvester
+// 5. SYNC
 app.get('/sync/:source', (req, res) => {
   const source = req.params.source.toLowerCase();
-
-  // Validation
-  if (source !== 'edx' && source !== 'coursera') {
-    return res.status(400).json({ 
-      message: "Invalid source. Allowed values: 'edx', 'coursera'" 
-    });
-  }
-
-  console.log(`🚀 Starting sync for: ${source}`);
-
-  // Spawn the Python process
   const pythonProcess = spawn('python3', ['harvester.py', source]);
-
-  pythonProcess.stdout.on('data', (data) => {
-    console.log(`[Python]: ${data}`);
-  });
-
-  pythonProcess.stderr.on('data', (data) => {
-    console.error(`[Python Error]: ${data}`);
-  });
-
-  pythonProcess.on('close', (code) => {
-    console.log(`[Python] Child process exited with code ${code}`);
-  });
-
-  res.status(202).json({ 
-    message: `Sync started for ${source}. Check server logs for progress.`,
-    status: "processing"
-  });
+  
+  pythonProcess.stdout.on('data', (d) => console.log(`[Py]: ${d}`));
+  pythonProcess.stderr.on('data', (d) => console.error(`[Py Err]: ${d}`));
+  
+  res.status(202).json({ message: "Sync started", status: "processing" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
