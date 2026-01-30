@@ -59,7 +59,7 @@ def df_find_similar(df, input_col="description"):
     lsh_model = lsh.fit(doc_vectors)
 
     # 5. Similarity Join
-    print("✅ Υπολογίζω ομοιότητα...")
+    print("Υπολογίζω ομοιότητα...")
 
     similar_df = lsh_model.approxSimilarityJoin(
         doc_vectors,
@@ -94,7 +94,6 @@ def df_find_similar(df, input_col="description"):
     return df_results
 
 
-# --- Main ---
 if __name__ == "__main__":
     spark, df = load_df("courses")
 
