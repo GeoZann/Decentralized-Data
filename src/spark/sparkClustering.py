@@ -38,10 +38,10 @@ def df_cluster(df):
     df_features = pipeline_model.transform(df_cleaned)
 
     # 3. Εφαρμογή Αλγορίθμου K-Means Clustering
-    K = 20  # Ορίστε τον επιθυμητό αριθμό συστάδων (clusters)
+    K = 20
     bkm = BisectingKMeans(featuresCol="features", k=K, seed=1)
 
-    print(f"✅ Εκτελώ K-Means με K={K} συστάδες...")
+    print(f"Εκτελώ K-Means με K={K} συστάδες...")
     model = bkm.fit(df_features)
     predictions = model.transform(df_features)
 
@@ -50,7 +50,6 @@ def df_cluster(df):
         col("prediction")
     )
 
-    # Προαιρετικά, μπορείτε τώρα να αφαιρέσετε την προσωρινή στήλη 'prediction'
     df_results = df_results.drop("clustering_text_cleaned", "prediction", "clustering_text_raw", "words", "filtered_words",
                                  "raw_features", "features")
 
@@ -62,7 +61,7 @@ if __name__ == "__main__":
 
     df_results = df_cluster(df)
 
-    print("✅ Η ομαδοποίηση ολοκληρώθηκε.")
+    print("Η ομαδοποίηση ολοκληρώθηκε.")
     df_results.show(truncate=50)
 
     save_df(spark, df_results, "courses")
