@@ -9,13 +9,13 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// --- DATABASE ---
+//DATABASE
 const mongoURI = "mongodb+srv://Giorgos:root@cluster0.c940dbb.mongodb.net/CourseDB";
 mongoose.connect(mongoURI)
-  .then(() => console.log("✅ Connected to MongoDB..."))
-  .catch(err => console.error("❌ Connection Error:", err));
+  .then(() => console.log(" Connected to MongoDB..."))
+  .catch(err => console.error(" Connection Error:", err));
 
-// --- SCHEMAS ---
+// SCHEMAS
 const courseSchema = new mongoose.Schema({
   title: String,
   description: String,
@@ -30,8 +30,8 @@ const Course = mongoose.model('Course', courseSchema, 'courses');
 const similaritySchema = new mongoose.Schema({}, { strict: false });
 const CourseSimilarity = mongoose.model('CourseSimilarity', similaritySchema, 'course_similarity');
 
-// --- THE FIX: LANGUAGE GROUPS ---
-// This acts as a dictionary to merge edX codes and Coursera names
+//LANGUAGE GROUPS
+//Merging edX codes and Coursera names
 const languageGroups = {
     'English': ['en', 'en-us', 'english', 'eng'],
     'Spanish': ['es', 'es-es', 'spanish', 'español'],
@@ -48,7 +48,7 @@ const getUnifiedLanguageName = (rawCode) => {
     if (!rawCode) return "Other";
     const lower = rawCode.toLowerCase().trim();
     
-    // Check against our groups
+    // Check against groups
     for (const [groupName, variations] of Object.entries(languageGroups)) {
         if (variations.includes(lower)) return groupName;
     }
@@ -57,12 +57,12 @@ const getUnifiedLanguageName = (rawCode) => {
     return rawCode.charAt(0).toUpperCase() + rawCode.slice(1);
 };
 
-// --- API ENDPOINTS ---
+//API ENDPOINTS
 
-// 1. GET FILTERS (Consolidated)
+//GET FILTERS
 app.get('/filters', async (req, res) => {
     try {
-        // A. CATEGORIES (Same as before)
+        //CATEGORIES
         const categoryStats = await Course.aggregate([
             { $group: { _id: "$category", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
