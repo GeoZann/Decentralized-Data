@@ -6,10 +6,9 @@ def load_df(collection):
     DB_NAME = "CourseDB"
     COLLECTION_NAME = collection
 
-    # Το πλήρες όνομα της συλλογής για ανάγνωση
     MONGO_READ_URI = f"{MONGO_URI}/{DB_NAME}.{COLLECTION_NAME}"
 
-    # --- 2. Εκκίνηση Spark Session ---
+    # 1. Εκκίνηση Spark Session
     MONGO_CONNECTOR_PACKAGE = "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1"
 
     spark = SparkSession.builder \
@@ -18,7 +17,7 @@ def load_df(collection):
         .config("spark.mongodb.input.uri", MONGO_READ_URI) \
         .getOrCreate()
 
-    # --- 3. Φόρτωση Δεδομένων σε DataFrame ---
+    # 2. Φόρτωση Δεδομένων σε DataFrame
     print("✅ Φορτώνω δεδομένα από το MongoDB...")
 
     df = spark.read.format("mongo") \
@@ -33,7 +32,6 @@ def save_df(spark, df, collection, update_keys="_id", mode="append"):
     DB_NAME = "CourseDB"
     COLLECTION_NAME = collection
 
-    # Το πλήρες όνομα της συλλογής για ανάγνωση
     MONGO_WRITE_URI = f"{MONGO_URI}/{DB_NAME}.{COLLECTION_NAME}"
 
     try:
@@ -55,7 +53,6 @@ def save_df(spark, df, collection, update_keys="_id", mode="append"):
 
 
 if __name__ == "__main__":
-    # 4. Εμφάνιση Αποτελεσμάτων
     spark, df = load_df("courses")
     print("\n--- Schema του DataFrame ---")
     df.printSchema()
@@ -64,4 +61,4 @@ if __name__ == "__main__":
     df.show(5)
 
     spark.stop()
-    print("\n✅ Η εργασία ολοκληρώθηκε και η Spark Session τερματίστηκε.")
+    print("\nΗ εργασία ολοκληρώθηκε και η Spark Session τερματίστηκε.")
