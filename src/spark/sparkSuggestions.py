@@ -1,4 +1,4 @@
-from pyspark.sql.functions import col, explode, cast
+from pyspark.sql.functions import col, explode, desc, max as spark_max
 from sparkLoad import load_df
 
 
@@ -7,50 +7,42 @@ def generate_suggestions(user_likes: list, num_suggestions=5):
         print("Ο χρήστης δεν έχει likes. Δεν μπορούν να δημιουργηθούν προτάσεις.")
         return None
 
-    # Φόρτωση του πίνακα ομοιότητας (course_similarity)
+    # Φόρτωση του πίνακα ομοιότητας
     spark, similarity_df = load_df("course_similarity")
 
-    # Ensure the main ID is a simple string for the initial filter
+    # 1. Μετατροπή του κύριου _id από Struct σε String (όπως πριν)
     similarity_df = similarity_df.withColumn("_id", col("_id.oid"))
 
-    # Φιλτράρισμα του πίνακα ομοιότητας ώστε να περιλαμβάνει μόνο σειρές όπου το _id
-    # βρίσκεται στη λίστα των likes του χρήστη
+    # Φιλτράρισμα: Κρατάμε μόνο τα μαθήματα που ο χρήστης έχει κάνει ήδη like
     liked_courses_similarities = similarity_df.filter(
         col("_id").isin(user_likes)
     )
 
-    # Αναπτύσσουμε (explode) τον πίνακα 'top_5_similar_docs' για να δημιουργήσουμε
-    # μία γραμμή ανά πρόταση ομοιότητας
+    # 2. Ανάπτυξη (Explode)
     exploded_suggestions = liked_courses_similarities.select(
         col("_id").alias("liked_course_id"),
         explode("top_5_similar_docs").alias("suggestion")
     )
 
-    # --- FIX STARTS HERE ---
-    # Extract the suggested course ID, distance, and cast the ID to a STRING type.
+    # 3. Προσθέτουμε το .oid στο similar_doc_id
     filtered_suggestions = exploded_suggestions.select(
         col("liked_course_id"),
         col("suggestion.similar_doc_id.oid").alias("suggested_course_id"),
-        col("suggestion.distance").alias("distance")
+        col("suggestion.similarity_score").alias("score")
     ).filter(
-        # Now 'suggested_course_id' is a simple string, matching the types in 'user_likes'
         ~col("suggested_course_id").isin(user_likes)
     )
-    # --- FIX ENDS HERE ---
 
-    # Ομαδοποίηση ανά προτεινόμενο ID μαθήματος για να βρούμε μοναδικές προτάσεις
-    # και να αθροίσουμε τις αποστάσεις (παίρνουμε την ελάχιστη απόσταση ως "καλύτερη")
-    # Note: Using min('distance') is correct for finding the *most* similar course from any like.
-    unique_suggestions = filtered_suggestions.groupBy("suggested_course_id").min("distance")
+    # 4. Ομαδοποίηση και εύρεση μέγιστου score
+    unique_suggestions = filtered_suggestions.groupBy("suggested_course_id") \
+        .agg(spark_max("score").alias("max_score"))
 
-    # Ταξινόμηση κατά την ελάχιστη απόσταση (μικρότερη απόσταση = καλύτερη ομοιότητα)
-    # και περιορισμός στις κορυφαίες N
+    # 5. Ταξινόμηση φθίνουσα (μεγαλύτερο score = καλύτερο)
     final_suggestions = unique_suggestions.orderBy(
-        col("min(distance)")
+        desc("max_score")
     ).limit(num_suggestions)
 
-    print(f"✅ Δημιουργήθηκαν {final_suggestions.count()} μοναδικές προτάσεις.")
-    # final_suggestions.show(truncate=False)
+    print(f"Δημιουργήθηκαν {final_suggestions.count()} μοναδικές προτάσεις.")
 
     return spark, final_suggestions
 
