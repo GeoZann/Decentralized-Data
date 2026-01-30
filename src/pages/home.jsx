@@ -1,20 +1,22 @@
 // src/pages/Home.jsx
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Home.css'; 
 
 // --- 1. THE MEMORY CACHE ---
 const homeCache = {
-  data: null,        
+  data: null,
   total: 0,
-  scrollY: 0,        
+  scrollY: 0,
   search: '',
   level: 'All',
   source: 'All',
   category: 'All',
   language: 'All',
-  page: 1
+  page: 1,
+  cachedCategories: [],
+  cachedLanguages: []
 };
 
 // --- HELPERS ---
@@ -23,6 +25,8 @@ const normalizeLanguage = (lang) => {
   const langStr = String(lang);
   const lower = langStr.toLowerCase().trim();
   if (lower === 'en' || lower === 'en-us' || lower === 'english') { return "English"; }
+  // Capitalize 2-letter codes for better look (e.g. 'fr' -> 'FR')
+  if (langStr.length === 2) return langStr.toUpperCase();
   return langStr; 
 };
 
@@ -81,11 +85,13 @@ const CourseTitle = ({ text, highlight }) => {
 
 function Home() {
   const [courses, setCourses] = useState(homeCache.data || []);
-  const [serverTotal, setServerTotal] = useState(homeCache.total || 0); // NEW STATE
-  const [loading, setLoading] = useState(!homeCache.data); 
+  const [serverTotal, setServerTotal] = useState(homeCache.total || 0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // States initialized from cache
+  const [categoryOptions, setCategoryOptions] = useState(homeCache.cachedCategories || []);
+  const [languageOptions, setLanguageOptions] = useState(homeCache.cachedLanguages || []);
+
   const [searchTerm, setSearchTerm] = useState(homeCache.search);
   const [filterLevel, setFilterLevel] = useState(homeCache.level);
   const [filterSource, setFilterSource] = useState(homeCache.source);
@@ -98,47 +104,78 @@ function Home() {
   
   const itemsPerPage = 18; 
 
-  // --- 2. PROGRESSIVE LOADING STRATEGY ---
+  // --- 1. FETCH DYNAMIC FILTERS ---
   useEffect(() => {
-    if (!homeCache.data) {
-      
-      // PHASE 1: Fast Load (First 100 items only)
-      axios.get('http://localhost:3000/courses?limit=100')
-        .then(response => {
-          if (!homeCache.data) {
-             setCourses(response.data.data);
-             // Use the 'total' from backend (7619) instead of the array length (100)
-             setServerTotal(response.data.total); 
-             setLoading(false);
-          }
-        })
-        .catch(err => console.error("Fast load failed", err));
-
-      // PHASE 2: Full Load (Background)
-      axios.get('http://localhost:3000/courses')
-        .then(response => {
-          setCourses(response.data.data); 
-          setServerTotal(response.data.total); 
+    if (categoryOptions.length === 0) {
+      axios.get('http://localhost:3000/filters')
+        .then(res => {
+          setCategoryOptions(res.data.categories);
+          setLanguageOptions(res.data.languages);
           
-          homeCache.data = response.data.data; 
-          homeCache.total = response.data.total; // Save total to cache
-          
-          setLoading(false);
+          homeCache.cachedCategories = res.data.categories;
+          homeCache.cachedLanguages = res.data.languages;
         })
-        .catch(err => {
-          console.error(err);
-          if (courses.length === 0) setError("Could not load courses.");
-          setLoading(false);
-        });
-
-    } else {
-        setTimeout(() => {
-            window.scrollTo(0, homeCache.scrollY);
-        }, 100);
+        .catch(err => console.error("Filter load error", err));
     }
   }, []);
 
-  // Update cache when filters change
+  // --- 2. FETCH COURSES ---
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm || undefined,
+          category: filterCategory !== 'All' ? filterCategory : undefined,
+          language: filterLanguage !== 'All' ? filterLanguage : undefined,
+          level: filterLevel !== 'All' ? filterLevel : undefined,
+          source_repository: filterSource !== 'All' ? filterSource : undefined,
+        };
+
+        const response = await axios.get('http://localhost:3000/courses', { params });
+
+        setCourses(response.data.data);
+        setServerTotal(response.data.total); 
+        
+        homeCache.data = response.data.data;
+        homeCache.total = response.data.total;
+        
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load courses. Please check the server.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      fetchCourses();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+
+  }, [currentPage, searchTerm, filterCategory, filterLanguage, filterLevel, filterSource]);
+
+
+  // Restore Scroll
+  useEffect(() => {
+    if (homeCache.scrollY > 0) {
+       window.scrollTo(0, homeCache.scrollY);
+    }
+    
+    const handleScroll = () => {
+       setIsSticky(window.scrollY > 0);
+       homeCache.scrollY = window.scrollY;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Sync Cache
   useEffect(() => {
       homeCache.search = searchTerm;
       homeCache.level = filterLevel;
@@ -148,17 +185,6 @@ function Home() {
       homeCache.page = currentPage;
   }, [searchTerm, filterLevel, filterSource, filterCategory, filterLanguage, currentPage]);
 
-  // Track Scroll
-  useEffect(() => {
-      const handleScroll = () => {
-          setIsSticky(window.scrollY > 0);
-          homeCache.scrollY = window.scrollY; 
-      };
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // --- Handlers ---
   const handleFilterChange = (setter, value) => {
     setter(value);
     setCurrentPage(1); 
@@ -178,32 +204,10 @@ function Home() {
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
     setPageInput(newPage); 
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 10);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const uniqueCategories = ['All', ...new Set(courses.map(c => c.category || 'Other'))].sort();
-  const uniqueLanguages = ['All', ...new Set(courses.map(c => normalizeLanguage(c.language)))].sort();
-
-  const filteredCourses = courses.filter(course => {
-    const titleMatch = course.title && course.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const courseLevelRaw = String(course.level || "").toLowerCase();
-    let levelMatch = true;
-    if (filterLevel === 'Beginner') levelMatch = courseLevelRaw.includes('beginner') || courseLevelRaw.includes('introductory');
-    else if (filterLevel !== 'All') levelMatch = courseLevelRaw.includes(filterLevel.toLowerCase());
-
-    const courseSource = course.source_repository || "Unknown";
-    const sourceMatch = filterSource === 'All' || courseSource === filterSource;
-    const categoryMatch = filterCategory === 'All' || (course.category || "Other") === filterCategory;
-    const languageMatch = filterLanguage === 'All' || normalizeLanguage(course.language) === filterLanguage;
-    
-    return titleMatch && levelMatch && sourceMatch && categoryMatch && languageMatch;
-  });
-
-  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const currentItems = filteredCourses.slice(indexOfLastItem - itemsPerPage, indexOfLastItem);
+  const totalPages = Math.ceil(serverTotal / itemsPerPage);
 
   const handleInputKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -215,12 +219,6 @@ function Home() {
       e.target.blur(); 
     }
   };
-
-  // --- SMART COUNT LOGIC ---
-  // If no filters are active, show the "Server Total" (7619) even if we only loaded 100 so far.
-  // If filters ARE active, show the filtered result count.
-  const isFiltering = searchTerm !== '' || filterLevel !== 'All' || filterSource !== 'All' || filterCategory !== 'All' || filterLanguage !== 'All';
-  const displayCount = isFiltering ? filteredCourses.length : Math.max(filteredCourses.length, serverTotal);
 
   return (
     <div className="home-container">
@@ -244,15 +242,19 @@ function Home() {
         />
 
         <select value={filterCategory} onChange={(e) => handleFilterChange(setFilterCategory, e.target.value)} className="filter-select">
-           {uniqueCategories.map(cat => (
-             <option key={cat} value={cat}>{cat === 'All' ? 'All Topics' : cat}</option>
+           <option value="All">All Topics</option>
+           {categoryOptions.map(cat => (
+             <option key={cat} value={cat}>{cat}</option>
            ))}
         </select>
 
+        {/* DYNAMIC LANGUAGE DROPDOWN */}
         <select value={filterLanguage} onChange={(e) => handleFilterChange(setFilterLanguage, e.target.value)} className="filter-select">
-           {uniqueLanguages.map(lang => (
-             <option key={lang} value={lang}>{lang === 'All' ? 'All Languages' : lang}</option>
-           ))}
+          <option value="All">All Languages</option>
+          {languageOptions.map(lang => (
+            /* The server now sends "English", "Spanish" etc. directly */
+            <option key={lang} value={lang}>{lang}</option>
+          ))}
         </select>
 
         <select value={filterLevel} onChange={(e) => handleFilterChange(setFilterLevel, e.target.value)} className="filter-select">
@@ -274,23 +276,20 @@ function Home() {
       </div>
 
       {loading && <div style={{ color: 'white', textAlign: 'center', padding: '50px' }}>Loading...</div>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
 
       {!loading && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', color: '#888' }}>
-            {/* USE THE NEW DISPLAY COUNT VARIABLE HERE */}
-            <span>Found {displayCount} courses</span>
+            <span>Found {serverTotal} courses</span>
             <span>Page {currentPage} of {totalPages || 1}</span>
         </div>
       )}
 
       {/* Grid */}
       <div className="course-grid">
-        {currentItems.map(course => (
+        {courses.map(course => (
           <div key={course._id} className="course-card">
-            
             <CourseTitle text={course.title} highlight={searchTerm} />
-            
             <div className="card-badges">
               <span className="card-badge">📂 {course.category || 'General'}</span>
               <span className="card-badge">🌐 {normalizeLanguage(course.language)}</span>
@@ -299,7 +298,6 @@ function Home() {
                 {course.source_repository || 'Unknown'}
               </span>
             </div>
-
             <Link to={`/course/${course._id}`} style={{ textDecoration: 'none' }}>
               <button className="action-button view-details-btn">
                 View Details
