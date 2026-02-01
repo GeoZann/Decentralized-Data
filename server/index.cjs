@@ -43,7 +43,7 @@ const languageGroups = {
     'Portuguese': ['pt', 'portuguese', 'português']
 };
 
-// Helper to normalize raw DB values (e.g. "en" -> "English")
+// Helper to normalize raw DB values ( "en" -> "English")
 const getUnifiedLanguageName = (rawCode) => {
     if (!rawCode) return "Other";
     const lower = rawCode.toLowerCase().trim();
@@ -53,7 +53,7 @@ const getUnifiedLanguageName = (rawCode) => {
         if (variations.includes(lower)) return groupName;
     }
     
-    // Fallback: Capitalize first letter (e.g. 'jap' -> 'Jap')
+    // Fallback: Capitalize first letter ('jap' -> 'Jap')
     return rawCode.charAt(0).toUpperCase() + rawCode.slice(1);
 };
 
@@ -73,12 +73,11 @@ app.get('/filters', async (req, res) => {
             .map(item => item._id)
             .sort();
 
-        // B. LANGUAGES (The Fix)
-        // 1. Get ALL raw languages from DB (e.g. ['en', 'English', 'es', 'Spanish'])
+        //LANGUAGES
+        //Get ALL raw languages from DB
         const rawLanguages = await Course.distinct('language');
         
-        // 2. Normalize them into a Set to remove duplicates
-        // 'en' becomes 'English', 'English' becomes 'English' -> Set keeps one 'English'
+        //Normalize them into a Set to remove duplicates
         const uniqueNames = new Set();
         rawLanguages.forEach(lang => {
             if (lang) uniqueNames.add(getUnifiedLanguageName(lang));
@@ -86,7 +85,7 @@ app.get('/filters', async (req, res) => {
 
         res.json({
             categories: categories,
-            languages: Array.from(uniqueNames).sort() // Returns ["English", "Spanish", ...]
+            languages: Array.from(uniqueNames).sort()
         });
 
     } catch (err) {
@@ -95,7 +94,7 @@ app.get('/filters', async (req, res) => {
     }
 });
 
-// 2. GET COURSES (Smart Search)
+//GET COURSES
 app.get('/courses', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -104,37 +103,35 @@ app.get('/courses', async (req, res) => {
 
     let filter = {};
 
-    // CATEGORY
+    //CATEGORY
     if (req.query.category && req.query.category !== 'All') {
         const escapedCat = req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         filter.category = { $regex: new RegExp(`^${escapedCat}$`, 'i') }; 
     }
 
-    // LANGUAGE (The Fix)
+    //LANGUAGE
     if (req.query.language && req.query.language !== 'All') {
-        const selected = req.query.language; // User sends "English"
+        const selected = req.query.language;
         
-        // Check if we have a group for this (e.g. English -> ['en', 'English', ...])
+        // Check if we have a group
         const groupMatches = languageGroups[selected];
 
         if (groupMatches) {
-            // Search for ANY of the variations
-            // This finds documents where language is "en" OR "English"
+            // Search for any of the variations
             const regexList = groupMatches.map(val => new RegExp(`^${val}$`, 'i'));
             filter.language = { $in: regexList };
         } else {
-            // Fallback for unknown languages
             filter.language = { $regex: new RegExp(`^${selected}$`, 'i') };
         }
     }
 
-    // LEVEL
+    //LEVEL
     if (req.query.level && req.query.level !== 'All') {
          if (req.query.level === 'Beginner') filter.level = { $regex: /Beginner|Introductory/i };
          else filter.level = { $regex: req.query.level, $options: 'i' };
     }
 
-    // SOURCE & SEARCH
+    //SOURCE & SEARCH
     if (req.query.source_repository && req.query.source_repository !== 'All') {
         filter.source_repository = { $regex: req.query.source_repository, $options: 'i' };
     }
@@ -154,7 +151,7 @@ app.get('/courses', async (req, res) => {
   }
 });
 
-// 3. SINGLE COURSE
+//SINGLE COURSE
 app.get('/courses/:id', async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -163,7 +160,7 @@ app.get('/courses/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 4. RECOMMENDATIONS
+//RECOMMENDATIONS
 app.get('/courses/:id/similar', async (req, res) => {
   try {
     const simDoc = await CourseSimilarity.findById(req.params.id);
@@ -182,7 +179,7 @@ app.get('/courses/:id/similar', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 5. SYNC
+//SYNC
 app.get('/sync/:source', (req, res) => {
   const source = req.params.source.toLowerCase();
   const pythonProcess = spawn('python3', ['harvester.py', source]);
