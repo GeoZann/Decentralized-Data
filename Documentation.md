@@ -1,4 +1,4 @@
-#Horizontal Repository/Aggregator for Open Courses 
+# Horizontal Repository/Aggregator for Open Courses 
 
 **Academic Year:** 2025-2026
 
