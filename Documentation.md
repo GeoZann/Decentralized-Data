@@ -159,12 +159,12 @@ The `sparkSuggestions.py` script implements **Item-Based Collaborative Filtering
 ## 8. Frontend & Application Functionality
 Implemented as an SPA using **React.js**, **React Router**, and **Axios**.
 
-### 8.2 Performance Optimization
+### 8.1 Performance Optimization
 1.  **Server-Side Pagination:** Retrieving only necessary records (e.g., 18 per page).
 2.  **Server-Side Filtering:** Filters are executed directly on the database.
 3.  **Client-Side Caching:** Preservation of filter state and scroll position when navigating back to the list.
 
-### 8.3 Pages
+### 8.2 Pages
 * **Dashboard:** Search, Filters (Topic, Language, Level, Source), and Grid View of cards.
 * **Course Details:** Display of metadata and a **"You might also like"** section featuring the 5 semantically closest courses.
 
