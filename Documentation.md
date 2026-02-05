@@ -1,4 +1,4 @@
-# Horizontal Repository/Aggregator for Open Courses 
+# Horizontal Repository/Aggregator for Open Courses
 
 **Academic Year:** 2025-2026
 
@@ -9,6 +9,7 @@
 | Zafeiris Vasileios | 1093359 | 5th |
 | Psaltiras Panagiotis | 1093516 | 5th |
 | Vasilopoulos Panagiotis | 1097454 | 5th |
+
 ---
 
 ## Table of Contents
@@ -69,13 +70,13 @@ During development, it was identified that executing complex filtering logic on 
 ## 3. System Architecture
 The system follows a multi-tier architecture to separate presentation, business logic, and data processing.
 
-[cite_start]**The 4 Subsystems:** [cite: 60-63]
+**The 4 Subsystems:**
 1.  **Data Harvesting Layer:** Python scripts / Connectors.
 2.  **Data Storage Layer:** MongoDB.
 3.  **Application/Backend Layer:** Node.js & Express API.
 4.  **Frontend Layer:** React UI.
 
-*(Refer to the Architecture Diagram in the original document, Page 6)* 
+*(Refer to the Architecture Diagram in the original document, Page 6)*
 
 ---
 
@@ -135,7 +136,7 @@ The Backend (Node.js/Express) exposes RESTful endpoints.
 ### 7.1 Similarity Search
 Implemented using PySpark (`sparkTFIDF.py`). Uses descriptive text for semantic analysis.
 
-#### [cite_start]7.1.1 Pre-processing and Vectorization [cite: 258-263]
+#### 7.1.1 Pre-processing and Vectorization
 1.  **Tokenizer:** Splits text into tokens.
 2.  **StopWords Remover:** Removes common words without semantic value.
 3.  **HashingTF:** Creates frequency vectors ($2^{16}$ features) to minimize hash collisions.
@@ -148,20 +149,20 @@ Formula for converting distance to similarity:
 $$Similarity = 1 - \frac{EuclideanDistance^2}{2}$$
 
 ### 7.2 Clustering
-[cite_start]The **Bisecting K-Means** algorithm (hierarchical approach) was selected with $K=20$ and TF-IDF features ($2000$), as it performs better on high-dimensional text data compared to standard K-Means [cite: 285-288].
+The **Bisecting K-Means** algorithm (hierarchical approach) was selected with $K=20$ and TF-IDF features ($2000$), as it performs better on high-dimensional text data compared to standard K-Means.
 
 ### 7.3 User Suggestions
-The `sparkSuggestions.py` script implements **Item-Based Collaborative Filtering**. [cite_start]It recommends courses based on user "Likes," filtering out already liked items and ranking candidates by minimum distance [cite: 292-297].
+The `sparkSuggestions.py` script implements **Item-Based Collaborative Filtering**. It recommends courses based on user "Likes," filtering out already liked items and ranking candidates by minimum distance.
 
 ---
 
 ## 8. Frontend & Application Functionality
-[cite_start]Implemented as an SPA using **React.js**, **React Router**, and **Axios** [cite: 302-305].
+Implemented as an SPA using **React.js**, **React Router**, and **Axios**.
 
 ### 8.2 Performance Optimization
 1.  **Server-Side Pagination:** Retrieving only necessary records (e.g., 18 per page).
 2.  **Server-Side Filtering:** Filters are executed directly on the database.
-3.  [cite_start]**Client-Side Caching:** Preservation of filter state and scroll position when navigating back to the list [cite: 315-319].
+3.  **Client-Side Caching:** Preservation of filter state and scroll position when navigating back to the list.
 
 ### 8.3 Pages
 * **Dashboard:** Search, Filters (Topic, Language, Level, Source), and Grid View of cards.
