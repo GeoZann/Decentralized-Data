@@ -163,7 +163,7 @@ The `sparkSuggestions.py` script implements **Item-Based Collaborative Filtering
 2.  **Server-Side Filtering:** Filters are executed directly on the database.
 3.  [cite_start]**Client-Side Caching:** Preservation of filter state and scroll position when navigating back to the list [cite: 315-319].
 
-### 8.3 Main Views
+### 8.3 Pages
 * **Dashboard:** Search, Filters (Topic, Language, Level, Source), and Grid View of cards.
 * **Course Details:** Display of metadata and a **"You might also like"** section featuring the 5 semantically closest courses.
 
