@@ -78,7 +78,7 @@ npm start
 
 This project was designed and built as a group assignment for the **Computer Engineering and Informatics Department** of the **University of Patras** .
 
-* **[Georgios Zannis]** [GitHub Profile](https://github.com/GeoZann)
-* **[Vasileios Zafeiris]** [GitHub Profile](https://github.com/vasizaf)
-* **[Panagiotis Psaltiras]** [GitHub Profile](https://github.com/Pan4g10tis)
-* **[Panagiotis Vasilopoulos]** [GitHub Profile](https://github.com/PanagiotisVas)
+* **Georgios Zannis** [GitHub Profile](https://github.com/GeoZann)
+* **Vasileios Zafeiris** [GitHub Profile](https://github.com/vasizaf)
+* **Panagiotis Psaltiras** [GitHub Profile](https://github.com/Pan4g10tis)
+* **Panagiotis Vasilopoulos** [GitHub Profile](https://github.com/PanagiotisVas)
